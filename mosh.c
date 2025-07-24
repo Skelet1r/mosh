@@ -6,6 +6,7 @@
 #include "includes/word_item.h"
 #include "includes/helpers.h"
 #include "includes/commands_parser.h"
+#include "includes/exec_commands.h"
 
 int main()
 {
@@ -19,7 +20,7 @@ int main()
         tail = NULL;
 
         read_command(&head, &tail);
-        print_list(head);
+        exec_commands(&head);
         delete_list(&head);
         head = NULL;
     }

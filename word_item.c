@@ -49,4 +49,3 @@ void delete_list(struct word_item** head)
         curr = next;
     }
 }
-

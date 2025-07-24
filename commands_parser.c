@@ -3,8 +3,36 @@
 #include "includes/helpers.h"
 #include "includes/word_item.h"
 
-static void reset_word(char** command, int* i, struct word_item** head, struct word_item** tail);
-static char* parse_quotes(char type_of_quotes);
+static char* parse_quotes(char type_of_quotes)
+{    
+    char* word = malloc(BUF_SIZE);
+    allocation_error(word);
+    int j;
+    char c;
+    
+    j = 0;
+    while ((c = getchar()) != type_of_quotes) {
+        if (c == '\n') {
+            printf("ERROR: unmatched quotes\n");
+            free(word);
+            return NULL;
+        }
+        word[j] = c;
+        j++;
+    }
+    word[j] = '\0';
+    return word;
+}
+
+static void reset_word(char** command, int* i, struct word_item** head, struct word_item** tail)
+{    
+    (*command)[(*i)] = '\0';
+    add_word(head, tail, *command);
+    free(*command);
+    *command = malloc(BUF_SIZE);
+    allocation_error(*command);
+    *i = 0;
+}
 
 void read_command(struct word_item** head, struct word_item** tail)
 {
@@ -36,35 +64,4 @@ void read_command(struct word_item** head, struct word_item** tail)
     if (i > 0) {
         reset_word(&command, &i, head, tail);
     }
-}
-
-static char* parse_quotes(char type_of_quotes)
-{    
-    char* word = malloc(BUF_SIZE);
-    allocation_error(word);
-    int j;
-    char c;
-    
-    j = 0;
-    while ((c = getchar()) != type_of_quotes) {
-        if (c == '\n') {
-            printf("ERROR: unmatched quotes\n");
-            free(word);
-            return NULL;
-        }
-        word[j] = c;
-        j++;
-    }
-    word[j] = '\0';
-    return word;
-}
-
-static void reset_word(char** command, int* i, struct word_item** head, struct word_item** tail)
-{    
-    (*command)[(*i)] = '\0';
-    add_word(head, tail, *command);
-    free(*command);
-    *command = malloc(BUF_SIZE);
-    allocation_error(*command);
-    *i = 0;
 }
