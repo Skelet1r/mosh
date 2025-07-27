@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <sys/wait.h>
 
@@ -45,9 +46,9 @@ static int check_chdir(const char* dir_path, struct word_item** curr)
     chdir_result = chdir(dir_path);
     if (chdir_result == -1) {
         perror("chdir");                
-        return ERROR_CODE;
+        return 1;
     }
-    return SUCCESS_CODE;
+    return 0;
 }
 
 static int exec_cd(struct word_item** head)
@@ -73,26 +74,67 @@ static int exec_cd(struct word_item** head)
             }
 
             if (i == 2) {
-                return SUCCESS_CODE;
+                return 0;
             }
             i++;
             curr = curr->next;
         }
     }
-    return ERROR_CODE;
+    return 1;
+}
+
+static char** bg_mode(char** cmdline, int cmdline_len)
+{
+    const int len_wo_amper = --cmdline_len;
+
+    if (!strcmp(cmdline[len_wo_amper], "&")) {
+        char** cmdline_wo_amp;
+        cmdline_wo_amp = malloc((len_wo_amper) * sizeof(char*));
+        if (cmdline_wo_amp == NULL) {
+            perror("ERROR: allocation error\n");
+            return NULL;
+        }
+
+        for (int i = 0; i < len_wo_amper; i++) {
+            cmdline_wo_amp[i] = cmdline[i];
+        }
+        return cmdline_wo_amp;
+    }    
+    return NULL;
 }
 
 void exec_commands(struct word_item** head)
 {
-    char** cmdline; 
-    int pid, cd;
-    
+    char** cmdline;
+    char** bg_mode_res;
+    int p, pid, cd, cmdline_len;
+   
+    p = 0;
     cd = exec_cd(head);
     if (cd == -1) {
         return;
     }
 
+    cmdline_len = count_list_elements(*head);
     cmdline = list_to_array(head);
+    
+    bg_mode_res = bg_mode(cmdline, cmdline_len);
+    if (bg_mode_res != NULL) {
+        pid = fork();
+
+        if (pid == -1) {
+            perror("fork");
+            return;
+        }
+
+        if (pid == 0) {
+            execvp(bg_mode_res[0], bg_mode_res);
+            perror("execvp");
+        }
+        free(bg_mode_res);
+        return;
+    }
+
     pid = fork();
 
     if (pid == -1) {
@@ -102,7 +144,11 @@ void exec_commands(struct word_item** head)
 
     if (pid == 0) {
         execvp(cmdline[0], cmdline);
+        perror("execvp");
     }
-    wait(NULL);
+
+    do {
+        p = wait(NULL);
+    } while (p != pid);
     free(cmdline);
 }
