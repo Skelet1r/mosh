@@ -58,23 +58,34 @@ static int exec_cd(struct word_item** head)
 
     i = 0;
     curr = *head;
+
+    if (!curr || strcmp(curr->word, "cd") != 0) {
+        return -1;
+    }
     
     if (!strcmp(curr->word, "cd")) {
         while (curr != NULL) {
+            int chdir_res;
             if (i == 0) {
                 if (curr->next == NULL) {
                     const char* home_path = getenv("HOME");
-                    check_chdir(home_path, &curr);
+                    chdir_res = check_chdir(home_path, &curr);
+                    if (chdir_res == 0) {
+                        return 0;
+                    } 
                 }
             }
 
             if (i == 1) {
                 const char* dir_path = curr->word;
-                check_chdir(dir_path, &curr);
+                chdir_res = check_chdir(dir_path, &curr);
+                if (chdir_res == 0) {
+                    return 0;
+                } 
             }
 
             if (i == 2) {
-                return 0;
+                return 1;
             }
             i++;
             curr = curr->next;
@@ -111,7 +122,7 @@ void exec_commands(struct word_item** head)
    
     p = 0;
     cd = exec_cd(head);
-    if (cd == -1) {
+    if (cd != -1) {
         return;
     }
 
@@ -145,8 +156,8 @@ void exec_commands(struct word_item** head)
     if (pid == 0) {
         execvp(cmdline[0], cmdline);
         perror("execvp");
+        return;
     }
-
     do {
         p = wait(NULL);
     } while (p != pid);
